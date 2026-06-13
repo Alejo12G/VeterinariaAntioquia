@@ -24,7 +24,7 @@ Necesito estructurar los siguientes módulos visuales en Blazor (usando datos fa
     - Botón Flotante de Acción (FAB) con el color primario que abra un modal/bottom sheet para "Pedir Cita".
 
 **Reglas de Código:**
-1. Todo el código debe estar comentado como un profesional (documentando el *porqué* de las decisiones, no lo obvio).
+1. Todo el código debe estar comentado como un profesional.
 2. Estructura el proyecto siguiendo buenas prácticas y separación de responsabilidades.
 
 **Primera acción requerida:**
