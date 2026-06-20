@@ -14,20 +14,34 @@ public static class MauiProgram
         builder
             .UseMauiApp<App>()
             .ConfigureFonts(fonts => { fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular"); });
-        //Autenticacion
+
+        // ── Autenticación ─────────────────────────────────────
         builder.Services.AddAuthorizationCore();
         builder.Services.AddScoped<IStorageService, SecureStorageService>();
-        // 1. Necesitamos registrar el HttpClient para poder hacer peticiones a la API
-        builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("http://192.168.1.1:3000/") });
-        // 2. Registramos el AuthService
+        builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
+
+        // ── AuthTokenHandler ──────────────────────────────────
+        builder.Services.AddTransient<AuthTokenHandler>();
+
+        // ── HttpClient con el handler en el pipeline ──────────
+        builder.Services.AddHttpClient("VetApi", client =>
+            {
+                client.BaseAddress = new Uri("http://15.235.123.248:3000/");
+            })
+            .AddHttpMessageHandler<AuthTokenHandler>();
+
+        builder.Services.AddScoped(sp =>
+            sp.GetRequiredService<IHttpClientFactory>().CreateClient("VetApi"));
+
+        // ── Servicios de negocio ──────────────────────────────
         builder.Services.AddScoped<AuthService>();
-        // Add device-specific services used by the VeterinariaAntioquia.Shared project
+        builder.Services.AddScoped<CitaService>();
+
+        // ── Servicios de plataforma ───────────────────────────
         builder.Services.AddSingleton<IFormFactor, FormFactor>();
         builder.Services.AddScoped<CustomToastService>();
-        builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
-        
+
         builder.Services.AddMauiBlazorWebView();
-        
 
 #if DEBUG
         builder.Services.AddBlazorWebViewDeveloperTools();

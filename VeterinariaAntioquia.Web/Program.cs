@@ -6,35 +6,52 @@ using VeterinariaAntioquia.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// ── Razor / Blazor ────────────────────────────────────────
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// Add device-specific services used by the VeterinariaAntioquia.Shared project
+// ── Auth: solo el core de Blazor, sin middleware ASP.NET ──
+// NO llamamos AddAuthentication() porque no tenemos esquema
+// server-side (cookies/JWT). Blazor maneja el estado de auth
+// completamente a través de CustomAuthStateProvider.
+builder.Services.AddAuthorizationCore();
+builder.Services.AddCascadingAuthenticationState();
+
+builder.Services.AddScoped<IStorageService, LocalStorageService>();
+builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
+
+// ── AuthTokenHandler ──────────────────────────────────────
+builder.Services.AddTransient<AuthTokenHandler>();
+
+// ── HttpClient con el handler en el pipeline ─────────────
+builder.Services.AddHttpClient("VetApi", client =>
+{
+    client.BaseAddress = new Uri("http://15.235.123.248:3000/");
+})
+.AddHttpMessageHandler<AuthTokenHandler>();
+
+builder.Services.AddScoped(sp =>
+    sp.GetRequiredService<IHttpClientFactory>().CreateClient("VetApi"));
+
+// ── Servicios de negocio ──────────────────────────────────
+builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<CitaService>();
+
+// ── Servicios de plataforma ───────────────────────────────
 builder.Services.AddSingleton<IFormFactor, FormFactor>();
 builder.Services.AddScoped<CustomToastService>();
-// 1. Registro del HttpClient para la Web
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("http://192.168.1.1:3000/") });
 
-// 2. Registro del AuthService
-builder.Services.AddScoped<AuthService>();
-//Autenticacion
-builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
-builder.Services.AddScoped<IStorageService, LocalStorageService>();
+// ── Pipeline HTTP ─────────────────────────────────────────
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
+
 app.UseStatusCodePagesWithReExecute("/404");
-//app.UseHttpsRedirection();
-
 app.UseAntiforgery();
-
 app.MapStaticAssets();
 
 app.MapRazorComponents<App>()
